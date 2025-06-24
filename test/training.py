@@ -90,24 +90,24 @@ def train_model(params):
         scheduler.step(val_loss)
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            best_model_state = model.state_dict()
+            best_model_state = {k: v.cpu().numpy() for k, v in model.state_dict().items()}
             patience_counter = 0
         else:
             patience_counter += 1
         if patience_counter >= params['patience']:
             break
 
-    model.load_state_dict(best_model_state)
+    model.load_state_dict({k: torch.tensor(v) for k, v in best_model_state.items()})
     
     metrics_train, _ = T.model.evaluate_split(model, T.data.train_X, T.data.train_Y)
     metrics_val, _   = T.model.evaluate_split(model, T.data.val_X, T.data.val_Y)
     metrics_test, _  = T.model.evaluate_split(model, T.data.test_X, T.data.test_Y)
 
     return {
-        'best_val_loss': best_val_loss,
-        'metrics_train': metrics_train,
-        'metrics_val': metrics_val,
-        'metrics_test': metrics_test,
+        'best_val_loss': float(best_val_loss),
+        'metrics_train': {k: float(v) for k, v in metrics_train.items()},
+        'metrics_val': {k: float(v) for k, v in metrics_val.items()},
+        'metrics_test': {k: float(v) for k, v in metrics_test.items()},
         'model_state': best_model_state,
         'params': params
     }
@@ -176,7 +176,7 @@ model_dir = os.path.join(EXPERIMENT_DIR, "best_models", timestamp)
 os.makedirs(model_dir, exist_ok=True)
 
 torch.save({
-    'model_state_dict': best_result['model_state'],
+    'model_state_dict': {k: torch.tensor(v) for k, v in best_result['model_state'].items()},
     'params': best_result['params'],
     'metrics': {
         'train': best_result['metrics_train'],
@@ -202,8 +202,8 @@ with open(RESULTS_FILE, 'w') as f:
 
 best_model = T.model.build_model(input_dim=T.data.train_X.shape[1], n_units=best_result['params']['n_units'], 
                           dropout_rate=best_result['params']['dropout_rate'])
+best_model.load_state_dict({k: torch.tensor(v) for k, v in best_result['model_state'].items()})
 
-
-T.model.plot_scatter(best_model, "test", T.data.train_X, T.data.train_Y, metrics=best_result['metrics_train'], save_path=os.path.join(model_dir, 'train_scatter.png'))
+T.model.plot_scatter(best_model, "test", T.data.train_X, T.data.train_Y, metrics=best_result['metrics_train'], save_path=os.path.join(model_dir, 'train_scatter.png'))  
 T.model.plot_scatter(best_model, "wangwang", T.data.val_X, T.data.val_Y, metrics=best_result['metrics_val'], save_path=os.path.join(model_dir, 'val_scatter.png'))
 T.model.plot_scatter(best_model, "myangmyang", T.data.test_X, T.data.test_Y, metrics=best_result['metrics_test'], save_path=os.path.join(model_dir, 'test_scatter.png'))
