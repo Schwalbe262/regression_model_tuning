@@ -16,10 +16,10 @@ os_name = platform.system()
 
 if os_name == "Windows":
     module_path = r"Y:/git/regression_model_tuning/src/"
-    PATH = r"Y:/git/regression_model_tuning/"
+    PATH = r"Y:/git/regression_model_tuning/test/"
 else:
-    module_path = r"/gpfs/home1/r1jae262/jupyter/git/regression_model_tuning/src/"
-    PATH = r"/gpfs/home1/r1jae262/jupyter/git/regression_model_tuning/"
+    module_path = r"/gpfs/home2/wjddn5916/Ansys_NEC/git/regression_model_tuning/src/"
+    PATH = r"/gpfs/home2/wjddn5916/Ansys_NEC/git/regression_model_tuning/test/"
 
 sys.path.insert(0, module_path)
 
@@ -73,7 +73,14 @@ def train_model(params):
     X_train_tensor, y_train_tensor = T.model.convert_data_to_tensor(T.data.train_X, T.data.train_Y, view_y=True)
     X_val_tensor, y_val_tensor = T.model.convert_data_to_tensor(T.data.val_X, T.data.val_Y, view_y=True)
     train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
-    train_loader = DataLoader(train_dataset, batch_size=params['batch_size'], shuffle=True, num_workers=4)   
+    train_loader = train_loader = DataLoader(
+        train_dataset,
+        batch_size=params['batch_size'],
+        shuffle=True,
+        num_workers=0,
+        pin_memory=True
+    )
+
 
     optimizer = optim.Adam(model.parameters(), lr=params['learning_rate'])
     criterion = nn.MSELoss()
@@ -90,14 +97,14 @@ def train_model(params):
         scheduler.step(val_loss)
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            best_model_state = {k: v.cpu().numpy() for k, v in model.state_dict().items()}
+            best_model_state = model.state_dict()
             patience_counter = 0
         else:
             patience_counter += 1
         if patience_counter >= params['patience']:
             break
 
-    model.load_state_dict({k: torch.tensor(v) for k, v in best_model_state.items()})
+    model.load_state_dict(best_model_state)
     
     metrics_train, _ = T.model.evaluate_split(model, T.data.train_X, T.data.train_Y)
     metrics_val, _   = T.model.evaluate_split(model, T.data.val_X, T.data.val_Y)
@@ -176,7 +183,7 @@ model_dir = os.path.join(EXPERIMENT_DIR, "best_models", timestamp)
 os.makedirs(model_dir, exist_ok=True)
 
 torch.save({
-    'model_state_dict': {k: torch.tensor(v) for k, v in best_result['model_state'].items()},
+    'model_state_dict': best_result['model_state'],
     'params': best_result['params'],
     'metrics': {
         'train': best_result['metrics_train'],
@@ -188,7 +195,13 @@ torch.save({
 # 전체 실험 결과 저장
 with open(RESULTS_FILE, 'w') as f:
     json.dump({
-        'all_results': results,
+        'all_results': [
+            {
+                # model_state 제외
+                k: v for k, v in r.items() if k != 'model_state'
+            }
+            for r in results
+        ],
         'best_result': {
             'params': best_result['params'],
             'metrics': {
@@ -200,10 +213,16 @@ with open(RESULTS_FILE, 'w') as f:
         }
     }, f, indent=2)
 
-best_model = T.model.build_model(input_dim=T.data.train_X.shape[1], n_units=best_result['params']['n_units'], 
-                          dropout_rate=best_result['params']['dropout_rate'])
-best_model.load_state_dict({k: torch.tensor(v) for k, v in best_result['model_state'].items()})
+best_model = T.model.build_model(
+    input_dim=len(T.data.input_cols),
+    n_layers=best_result['params']['n_layers'],
+    n_units=best_result['params']['n_units'],
+    activation="relu", 
+    dropout_rate=best_result['params']['dropout_rate']
+)
+best_model.load_state_dict(best_result['model_state'])
+best_model.to(T.model.device)
 
-T.model.plot_scatter(best_model, "test", T.data.train_X, T.data.train_Y, metrics=best_result['metrics_train'], save_path=os.path.join(model_dir, 'train_scatter.png'))  
-T.model.plot_scatter(best_model, "wangwang", T.data.val_X, T.data.val_Y, metrics=best_result['metrics_val'], save_path=os.path.join(model_dir, 'val_scatter.png'))
-T.model.plot_scatter(best_model, "myangmyang", T.data.test_X, T.data.test_Y, metrics=best_result['metrics_test'], save_path=os.path.join(model_dir, 'test_scatter.png'))
+T.model.plot_scatter(best_model, "test", T.data.train_X, T.data.train_Y, metrics=best_result['metrics_train'], save_path=os.path.join(model_dir, 'train_scatter.png'))
+T.model.plot_scatter(best_model, "wangwang", T.data.val_X, T.data.val_Y, metrics=best_result['metrics_val'], save_path=os.path.join(model_dir, 'train_scatter.png'))
+T.model.plot_scatter(best_model, "myangmyang", T.data.test_X, T.data.test_Y, metrics=best_result['metrics_test'], save_path=os.path.join(model_dir, 'train_scatter.png'))
