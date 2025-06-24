@@ -1,0 +1,125 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.pyo
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.joblib
+*.npy
+*.npz
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb~
+
+# Data/Model/Results
+*.csv
+*.tsv
+*.xls
+*.xlsx
+*.parquet
+*.feather
+*.sav
+*.dat
+*.db
+*.sqlite*
+*.log
+*.out
+*.tmp
+*.bak
+*.swp
+*.swo
+*.DS_Store
+*.log
+*.ckpt
+*.pth
+*.pt
+*.onnx
+*.pb
+*.tflite
+*.mlmodel
+*.hdf5
+*.weights
+*.tensorboard
+*.event*
+
+# Model artifacts
+saved_models/
+checkpoints/
+logs/
+outputs/
+results/
+
+# OS
+Thumbs.db
+.DS_Store
+ehthumbs.db
+Icon?
+
+# VSCode
+.vscode/
+
+# PyCharm
+.idea/
+*.iml
+
+# Environment
+.env
+.venv/
+venv/
+env/
+ENV/
+
+# Build
+build/
+dist/
+*.egg-info/
+
+# Misc
+*.cache
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# Unit test
+htmlcov/
+.coverage
+.tox/
+.nox/
+.pytest_cache/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+
+# Cython
+*.c
+*.cpp
+*.pyx
+*.pyd
+*.pyo
+*.so
+
+# Mac
+.AppleDouble
+.LSOverride
+
+# Windows
+Desktop.ini
+$RECYCLE.BIN/
+
+# Jupyter runtime
+~$*
+.jupyter/
+
+# IPython
+profile_default/
+ipython_config.py
+
+# Others
+*.orig 
